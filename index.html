@@ -96,6 +96,12 @@
 
         .btn-ciu:disabled { opacity: 0.2; cursor: not-allowed; }
 
+        .btn-danger:hover {
+            border-color: var(--ciu-red);
+            color: var(--ciu-red);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+        }
+
         .message-entry {
             border-left: 2px solid var(--ciu-blue);
             background: rgba(59, 130, 246, 0.02);
@@ -155,11 +161,10 @@
             <div class="space-y-6">
                 <div>
                     <label class="text-[8px] font-bold text-gray-600 uppercase tracking-widest block mb-2">Operative Identifier</label>
-                    <input id="op-id-input" type="text" autocomplete="off" class="input-field" placeholder="INPUT ID (north / talli)">
+                    <input id="op-id-input" type="text" autocomplete="off" class="input-field" placeholder="ID CODE...">
                 </div>
                 <div>
                     <label class="text-[8px] font-bold text-gray-600 uppercase tracking-widest block mb-2">Handshake Key</label>
-                    <!-- Removed readonly so users can type manually if auto-type fails -->
                     <input id="op-key-input" type="password" class="input-field text-blue-500 font-bold" placeholder="ENCRYPTION KEY">
                 </div>
                 <button onclick="window.beginSystemBoot('agent')" class="btn-ciu">Authenticate</button>
@@ -207,7 +212,7 @@
                 </div>
                 <div class="flex items-center space-x-6">
                     <div id="guest-badge" class="hidden px-3 py-1 border border-yellow-900/50 bg-yellow-950/20 text-yellow-600 text-[8px] font-bold uppercase rounded">Guest Access</div>
-                    <button onclick="window.triggerPurge()" class="btn-ciu hover:text-red-500 hover:border-red-500 px-4 py-2 text-[9px] w-auto">Purge Node</button>
+                    <button onclick="window.triggerPurge()" class="btn-ciu btn-danger px-4 py-2 text-[9px] w-auto">Purge Node</button>
                 </div>
             </header>
 
@@ -219,11 +224,11 @@
                             <div class="w-12 h-12 bg-gray-900 border border-gray-800 flex items-center justify-center text-blue-900 text-xl">👤</div>
                             <div>
                                 <div id="op-display-name" class="text-[11px] font-bold text-gray-200 uppercase">[REDACTED]</div>
-                                <div class="text-[8px] text-blue-600 font-bold tracking-widest">Level 5 Clearance</div>
+                                <div id="op-clearance" class="text-[8px] text-blue-600 font-bold tracking-widest">Level 5 Clearance</div>
                             </div>
                         </div>
                     </div>
-                    <div class="flex-1 flex flex-col">
+                    <div class="flex-1 flex flex-col space-y-4">
                         <div class="text-[8px] text-gray-600 uppercase font-bold tracking-widest mb-6">System Status</div>
                         <div class="space-y-5">
                             <div>
@@ -233,6 +238,11 @@
                             <div class="h-8 flex items-end space-x-1">
                                 <div class="viz-bar"></div><div class="viz-bar" style="animation-delay: 0.2s"></div><div class="viz-bar" style="animation-delay: 0.5s"></div><div class="viz-bar" style="animation-delay: 0.3s"></div><div class="viz-bar" style="animation-delay: 0.7s"></div>
                             </div>
+                        </div>
+
+                        <!-- Admin Access Toggle -->
+                        <div id="admin-controls" class="hidden pt-6 border-t border-gray-900">
+                             <button onclick="window.openPermissionModal()" class="btn-ciu text-yellow-500 border-yellow-900/30 text-[9px]">RAISA Permission Node</button>
                         </div>
                     </div>
                     <button id="transmit-trigger" onclick="window.openTransmitModal()" class="btn-ciu text-blue-500 border-blue-900/30">Transmit Message</button>
@@ -258,12 +268,26 @@
             </div>
         </div>
 
+        <!-- PERMISSION MODAL (Talli Only) -->
+        <div id="permission-modal" class="hidden-section fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/95 backdrop-blur-2xl">
+            <div class="w-full max-w-2xl glass-panel rounded p-12 space-y-6">
+                <div class="flex justify-between items-center border-b border-gray-800 pb-4">
+                    <h3 class="text-[10px] font-bold text-yellow-600 uppercase tracking-widest">Operative Permission Node</h3>
+                    <button onclick="window.closePermissionModal()" class="text-gray-600 hover:text-white">✕</button>
+                </div>
+                <div id="permission-list" class="space-y-4 py-4">
+                    <!-- Dynamic List -->
+                </div>
+                <p class="text-[7px] text-gray-700 italic">Access levels synced in real-time with Site-45 protocols.</p>
+            </div>
+        </div>
+
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Firebase Config
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'site-45-ciu-terminal';
@@ -275,14 +299,17 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // Updated Operative Database
         const operatives = {
-            "north": { name: "Marie Coleman", key: "CIUAGENT", greet: "Welcome Marie Coleman" },
-            "talli": { name: "Auditor", key: "Oversight", greet: "Welcome Auditor" }
+            "north": { id: "north", name: "Marie Coleman", key: "CIUOFFICER", greet: "Welcome Marie Coleman", level: 5 },
+            "talli": { id: "talli", name: "Auditor", key: "TALLI12311", greet: "Welcome Auditor", level: 5, isAdmin: true },
+            "equinox": { id: "equinox", name: "Equinox", key: "CIUDIRECTOR", greet: "Welcome Equinox", level: 5 }
         };
 
         let currentOperative = null;
         let isGuestMode = false;
-        let typingLock = false;
+        let userPermissions = { canTransmit: true };
+        let unsubscribePerms = null;
 
         // UI Selectors
         const opIdInput = document.getElementById('op-id-input');
@@ -293,48 +320,36 @@
         const commsBuffer = document.getElementById('comms-buffer');
         const nameDisplay = document.getElementById('op-display-name');
 
-        // --- PASSWORD DECRYPTION ANIMATION ---
-        opIdInput.addEventListener('input', async (e) => {
-            const val = e.target.value.toLowerCase().trim();
-            if (operatives[val] && !typingLock) {
-                typingLock = true;
-                opKeyInput.value = "";
-                const password = operatives[val].key;
-                for (let char of password) {
-                    opKeyInput.value += char;
-                    await new Promise(r => setTimeout(r, 60));
-                }
-                typingLock = false;
-            } else if (!operatives[val]) {
-                // Do not clear the key if they are typing manually
-                if (val === "") opKeyInput.value = "";
-            }
-        });
+        // Manual Entry: No input listener for auto-typing as per user request.
 
-        // --- ATTACH TO WINDOW FOR HTML ACCESS ---
+        // --- FLOW CONTROLLERS ---
         window.beginSystemBoot = async (mode) => {
             const id = opIdInput.value.toLowerCase().trim();
-            if (mode === 'agent' && !operatives[id]) {
-                const err = document.getElementById('auth-msg');
-                err.style.opacity = '1';
-                setTimeout(() => err.style.opacity = '0', 3000);
-                return;
+            const key = opKeyInput.value.trim();
+
+            if (mode === 'agent') {
+                if (!operatives[id] || operatives[id].key !== key) {
+                    const err = document.getElementById('auth-msg');
+                    err.style.opacity = '1';
+                    setTimeout(() => err.style.opacity = '0', 3000);
+                    return;
+                }
             }
 
             isGuestMode = (mode === 'guest');
-            currentOperative = isGuestMode ? { name: "ANONYMOUS_GUEST", greet: "Welcome Viewer" } : operatives[id];
+            currentOperative = isGuestMode ? { id: "guest", name: "ANONYMOUS_GUEST", greet: "Welcome Viewer", level: 1 } : operatives[id];
 
             document.getElementById('auth-layer').classList.add('hidden-section');
             document.getElementById('boot-layer').classList.remove('hidden-section');
 
             const logs = [
                 "Locating Site-45 Mainframe...",
-                "Bypassing Level 2 Node Firewall...",
-                "Syncing RAISA Manifest 45-Alpha...",
+                "Bypassing Node-45 Firewall...",
+                "Syncing RAISA Identity Manifest...",
                 `Target Operative: ${currentOperative.name}`,
                 "Establishing Quantum Tunnel...",
-                "Node RES-45-A accessible.",
-                "Handshake complete. Awaiting Secondary Pulse."
+                "Mounting CIU-COMM Environment...",
+                "Handshake complete. Awaiting Verification Signal."
             ];
 
             for (let i = 0; i < logs.length; i++) {
@@ -376,11 +391,16 @@
                 setTimeout(() => {
                     nameDisplay.textContent = currentOperative.name;
                     document.getElementById('welcome-header').textContent = currentOperative.greet;
+                    document.getElementById('op-clearance').textContent = `Level ${currentOperative.level} Clearance`;
+
                     if (isGuestMode) {
                         document.getElementById('guest-badge').classList.remove('hidden');
                         document.getElementById('transmit-trigger').disabled = true;
                         document.getElementById('transmit-trigger').textContent = "LOCKED";
+                    } else if (currentOperative.isAdmin) {
+                        document.getElementById('admin-controls').classList.remove('hidden');
                     }
+                    
                     document.getElementById('verify-layer').classList.add('hidden-section');
                     document.getElementById('terminal-layer').classList.remove('hidden-section');
                     initializeData();
@@ -389,6 +409,7 @@
         };
 
         function initializeData() {
+            // Comms Sync
             const ref = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
             onSnapshot(ref, (snap) => {
                 const messages = [];
@@ -397,11 +418,39 @@
                 renderComms(messages);
             });
 
+            // Live Permissions Listener
+            if (!isGuestMode) {
+                const permDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'permissions', currentOperative.id);
+                unsubscribePerms = onSnapshot(permDocRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        userPermissions = docSnap.data();
+                        updateTransmissionUI();
+                    } else {
+                        setDoc(permDocRef, { canTransmit: true });
+                    }
+                });
+            }
+
             setInterval(() => {
                 const load = 25 + Math.floor(Math.random() * 25);
                 document.getElementById('tel-mem').textContent = load + '%';
                 document.getElementById('tel-mem-bar').style.width = load + '%';
             }, 4000);
+        }
+
+        function updateTransmissionUI() {
+            const btn = document.getElementById('transmit-trigger');
+            if (isGuestMode) return;
+            
+            if (userPermissions.canTransmit === false) {
+                btn.disabled = true;
+                btn.textContent = "TRANSMISSION REVOKED";
+                btn.classList.replace('text-blue-500', 'text-red-700');
+            } else {
+                btn.disabled = false;
+                btn.textContent = "Transmit Message";
+                btn.classList.replace('text-red-700', 'text-blue-500');
+            }
         }
 
         function renderComms(msgs) {
@@ -420,6 +469,51 @@
             commsBuffer.scrollTop = commsBuffer.scrollHeight;
         }
 
+        // --- ADMIN FUNCTIONS ---
+        window.openPermissionModal = async () => {
+            const listContainer = document.getElementById('permission-list');
+            listContainer.innerHTML = `<div class="text-[9px] text-gray-600">Syncing Permission Node...</div>`;
+            document.getElementById('permission-modal').classList.remove('hidden-section');
+
+            const permColRef = collection(db, 'artifacts', appId, 'public', 'data', 'permissions');
+            onSnapshot(permColRef, (snap) => {
+                const perms = {};
+                snap.forEach(d => perms[d.id] = d.data());
+                
+                listContainer.innerHTML = "";
+                Object.keys(operatives).forEach(opId => {
+                    if (opId === currentOperative.id) return; 
+                    
+                    const op = operatives[opId];
+                    const opPerms = perms[opId] || { canTransmit: true };
+                    
+                    const item = document.createElement('div');
+                    item.className = "flex justify-between items-center p-4 border border-gray-900 rounded bg-black/20";
+                    item.innerHTML = `
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-bold text-gray-300 uppercase">${op.name}</span>
+                            <span class="text-[7px] text-gray-600 uppercase">Operative Node Status</span>
+                        </div>
+                        <button onclick="window.togglePermission('${opId}', ${opPerms.canTransmit})" 
+                            class="text-[8px] font-bold uppercase px-3 py-1 border transition-all ${opPerms.canTransmit ? 'border-green-900 text-green-700 bg-green-950/10' : 'border-red-900 text-red-700 bg-red-950/10'}">
+                            Feed: ${opPerms.canTransmit ? 'ALLOWED' : 'REVOKED'}
+                        </button>
+                    `;
+                    listContainer.appendChild(item);
+                });
+            });
+        };
+
+        window.togglePermission = async (opId, currentState) => {
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'permissions', opId);
+            try {
+                await setDoc(docRef, { canTransmit: !currentState }, { merge: true });
+            } catch (e) { console.error("Sync Failure:", e); }
+        };
+
+        window.closePermissionModal = () => document.getElementById('permission-modal').classList.add('hidden-section');
+
+        // --- TRANSMISSION HANDLING ---
         window.openTransmitModal = () => document.getElementById('transmit-modal').classList.remove('hidden-section');
         window.closeTransmitModal = () => {
             document.getElementById('transmit-modal').classList.add('hidden-section');
@@ -428,7 +522,7 @@
 
         window.executeTransmission = async () => {
             const body = document.getElementById('transmission-body').value.trim();
-            if (!body || !auth.currentUser) return;
+            if (!body || !auth.currentUser || userPermissions.canTransmit === false) return;
             const btn = document.getElementById('trans-btn');
             btn.disabled = true;
             try {
