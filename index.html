@@ -25,7 +25,6 @@
             margin: 0;
         }
 
-        /* --- Visual Atmosphere & CRT Effects --- */
         .crt-overlay {
             position: fixed; inset: 0; pointer-events: none; z-index: 999;
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
@@ -48,11 +47,7 @@
         }
 
         @keyframes scan { 0% { transform: translateY(-100px); } 100% { transform: translateY(100vh); } }
-        @keyframes grain {
-            0%, 100% { transform: translate(0,0); }
-            10% { transform: translate(-1%, -1%); }
-            50% { transform: translate(1%, 1%); }
-        }
+        @keyframes grain { 0%, 100% { transform: translate(0,0); } 10% { transform: translate(-1%, -1%); } 50% { transform: translate(1%, 1%); } }
 
         .glass-panel {
             background: rgba(10, 10, 10, 0.98);
@@ -101,30 +96,15 @@
 
         .btn-ciu:disabled { opacity: 0.2; cursor: not-allowed; }
 
-        .btn-danger:hover {
-            border-color: var(--ciu-red);
-            color: var(--ciu-red);
-            box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
-        }
-
-        /* --- Chat & Comms --- */
         .message-entry {
             border-left: 2px solid var(--ciu-blue);
             background: rgba(59, 130, 246, 0.02);
             padding: 1.25rem;
-            margin-bottom: 1.5rem;
-            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            margin-bottom: 1rem;
+            animation: slideUp 0.4s ease-out;
         }
 
         @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .viz-bar {
-            width: 3px; background: var(--ciu-blue);
-            animation: barPulse 1.2s infinite ease-in-out;
-            opacity: 0.5;
-        }
-
-        @keyframes barPulse { 0%, 100% { height: 20%; } 50% { height: 100%; } }
 
         .hidden-section { display: none !important; }
 
@@ -137,16 +117,12 @@
             animation: glitch-anim 2s infinite linear alternate-reverse;
         }
 
-        @keyframes glitch-anim {
-            0% { clip: rect(15px, 9999px, 30px, 0); }
-            20% { clip: rect(45px, 9999px, 10px, 0); }
-            100% { clip: rect(25px, 9999px, 85px, 0); }
-        }
+        @keyframes glitch-anim { 0% { clip: rect(15px, 9999px, 30px, 0); } 20% { clip: rect(45px, 9999px, 10px, 0); } 100% { clip: rect(25px, 9999px, 85px, 0); } }
 
-        .purge-mode {
-            animation: screenShake 0.1s infinite;
-            filter: invert(1) brightness(2) contrast(3);
-        }
+        .viz-bar { width: 3px; background: var(--ciu-blue); animation: barPulse 1.2s infinite ease-in-out; opacity: 0.5; }
+        @keyframes barPulse { 0%, 100% { height: 20%; } 50% { height: 100%; } }
+
+        .purge-mode { animation: screenShake 0.1s infinite; filter: invert(1) brightness(2); }
         @keyframes screenShake { 0% { transform: translate(2px, 1px); } 50% { transform: translate(-2px, -1px); } }
 
         .matrix-bg {
@@ -164,8 +140,8 @@
 
     <div id="terminal-viewport" class="h-screen w-full flex items-center justify-center p-4">
         
-        <!-- STEP 1: AUTHENTICATION -->
-        <section id="auth-layer" class="w-full max-w-md p-10 glass-panel rounded border-b-2 border-blue-900/40">
+        <!-- MODULE 1: AUTHENTICATION -->
+        <section id="auth-layer" class="w-full max-w-md p-10 glass-panel rounded border-b-2 border-blue-900/40 transition-all duration-500">
             <div class="text-center mb-10">
                 <div class="mb-6 inline-flex p-5 rounded bg-blue-950/10 border border-blue-900/20">
                     <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -179,21 +155,22 @@
             <div class="space-y-6">
                 <div>
                     <label class="text-[8px] font-bold text-gray-600 uppercase tracking-widest block mb-2">Operative Identifier</label>
-                    <input id="op-id-input" type="text" autocomplete="off" class="input-field" placeholder="INPUT ID...">
+                    <input id="op-id-input" type="text" autocomplete="off" class="input-field" placeholder="INPUT ID (north / talli)">
                 </div>
                 <div>
                     <label class="text-[8px] font-bold text-gray-600 uppercase tracking-widest block mb-2">Handshake Key</label>
-                    <input id="op-key-input" type="password" readonly class="input-field text-blue-500 font-bold" placeholder="...">
+                    <!-- Removed readonly so users can type manually if auto-type fails -->
+                    <input id="op-key-input" type="password" class="input-field text-blue-500 font-bold" placeholder="ENCRYPTION KEY">
                 </div>
-                <button onclick="beginSystemBoot('agent')" class="btn-ciu">Authenticate</button>
+                <button onclick="window.beginSystemBoot('agent')" class="btn-ciu">Authenticate</button>
                 <div class="pt-6 border-t border-gray-900 text-center">
-                    <button onclick="beginSystemBoot('guest')" class="text-[9px] font-bold text-gray-700 hover:text-blue-500 transition-colors uppercase tracking-[0.3em]">Bypass to Guest Mode</button>
+                    <button onclick="window.beginSystemBoot('guest')" class="text-[9px] font-bold text-gray-700 hover:text-blue-500 transition-colors uppercase tracking-[0.3em]">Bypass to Guest Mode</button>
                 </div>
             </div>
             <div id="auth-msg" class="mt-4 text-[9px] text-red-900 font-bold uppercase text-center opacity-0 transition-opacity">Access Denied: Buffer Mismatch</div>
         </section>
 
-        <!-- STEP 2: BOOT SEQUENCE -->
+        <!-- MODULE 2: INITIALIZATION -->
         <section id="boot-layer" class="hidden-section w-full max-w-2xl glass-panel p-10 rounded border-t-2 border-blue-900/40">
             <div class="flex justify-between items-center mb-8">
                 <div class="text-[10px] text-blue-500 font-bold uppercase tracking-widest animate-pulse">Syncing Site-45 Relay...</div>
@@ -205,22 +182,20 @@
             </div>
         </section>
 
-        <!-- STEP 3: BADGE VERIFICATION -->
+        <!-- MODULE 3: PHYSICAL SIGNATURE -->
         <section id="verify-layer" class="hidden-section w-full max-w-md glass-panel p-12 text-center flex flex-col items-center">
             <h2 id="verify-header" class="text-xl font-bold tracking-[0.3em] mb-4">CIU SIGNATURE</h2>
             <p id="verify-info" class="text-[9px] text-gray-600 font-bold uppercase tracking-[0.4em] mb-12">Hardware Verification Required</p>
-            
-            <div onclick="completeVerification()" class="group relative p-12 border-2 border-dashed border-gray-800 rounded-3xl hover:border-blue-600 transition-all active:scale-95 cursor-pointer">
+            <div onclick="window.completeVerification()" class="group relative p-12 border-2 border-dashed border-gray-800 rounded-3xl hover:border-blue-600 transition-all active:scale-95 cursor-pointer">
                 <svg class="w-20 h-20 text-gray-900 group-hover:text-blue-500 transition-colors duration-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="0.5" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
                 </svg>
                 <div class="mt-8 text-[9px] font-bold text-gray-700 uppercase tracking-widest group-hover:text-blue-400">Scan CIU ID Card</div>
             </div>
-            
             <div id="verify-log" class="mt-10 text-[9px] text-gray-700 italic tracking-widest">Listening for NFC Pulse...</div>
         </section>
 
-        <!-- STEP 4: SECURE MAIN TERMINAL -->
+        <!-- MODULE 4: MAIN INTERFACE -->
         <section id="terminal-layer" class="hidden-section w-full h-[95vh] max-w-7xl glass-panel rounded overflow-hidden flex flex-col transition-opacity duration-1000">
             <header class="p-6 border-b border-gray-900 bg-black/60 flex justify-between items-center">
                 <div class="flex items-center space-x-6">
@@ -232,7 +207,7 @@
                 </div>
                 <div class="flex items-center space-x-6">
                     <div id="guest-badge" class="hidden px-3 py-1 border border-yellow-900/50 bg-yellow-950/20 text-yellow-600 text-[8px] font-bold uppercase rounded">Guest Access</div>
-                    <button onclick="triggerPurge()" class="btn-ciu hover:text-red-500 hover:border-red-500 px-4 py-2 text-[9px] w-auto">Purge Node</button>
+                    <button onclick="window.triggerPurge()" class="btn-ciu hover:text-red-500 hover:border-red-500 px-4 py-2 text-[9px] w-auto">Purge Node</button>
                 </div>
             </header>
 
@@ -248,7 +223,6 @@
                             </div>
                         </div>
                     </div>
-
                     <div class="flex-1 flex flex-col">
                         <div class="text-[8px] text-gray-600 uppercase font-bold tracking-widest mb-6">System Status</div>
                         <div class="space-y-5">
@@ -256,18 +230,13 @@
                                 <div class="flex justify-between text-[8px] text-gray-700 uppercase mb-2"><span>Memetic Load</span><span id="tel-mem">32%</span></div>
                                 <div class="h-1 bg-gray-900 rounded overflow-hidden"><div id="tel-mem-bar" class="h-full bg-blue-600" style="width: 32%"></div></div>
                             </div>
-                            <div>
-                                <div class="text-[8px] text-gray-700 uppercase mb-3">Signal Scrambler</div>
-                                <div class="h-8 flex items-end space-x-1">
-                                    <div class="viz-bar"></div><div class="viz-bar" style="animation-delay: 0.2s"></div><div class="viz-bar" style="animation-delay: 0.5s"></div><div class="viz-bar" style="animation-delay: 0.3s"></div><div class="viz-bar" style="animation-delay: 0.7s"></div>
-                                </div>
+                            <div class="h-8 flex items-end space-x-1">
+                                <div class="viz-bar"></div><div class="viz-bar" style="animation-delay: 0.2s"></div><div class="viz-bar" style="animation-delay: 0.5s"></div><div class="viz-bar" style="animation-delay: 0.3s"></div><div class="viz-bar" style="animation-delay: 0.7s"></div>
                             </div>
                         </div>
                     </div>
-
-                    <button id="transmit-trigger" onclick="openTransmitModal()" class="btn-ciu text-blue-500 border-blue-900/30">Transmit Message</button>
+                    <button id="transmit-trigger" onclick="window.openTransmitModal()" class="btn-ciu text-blue-500 border-blue-900/30">Transmit Message</button>
                 </aside>
-
                 <main class="flex-1 flex flex-col bg-black/10">
                     <div id="comms-buffer" class="flex-1 overflow-y-auto p-12">
                         <div class="text-[9px] text-gray-800 font-bold text-center uppercase tracking-[0.6em] my-12">--- Secured Buffer Initialized ---</div>
@@ -281,11 +250,11 @@
             <div class="w-full max-w-2xl glass-panel rounded p-12 space-y-8">
                 <div class="flex justify-between items-center border-b border-gray-900 pb-6">
                     <h3 class="text-[11px] font-bold text-blue-500 uppercase tracking-widest">New Transmission</h3>
-                    <button onclick="closeTransmitModal()" class="text-gray-600 hover:text-white transition-colors">✕</button>
+                    <button onclick="window.closeTransmitModal()" class="text-gray-600 hover:text-white transition-colors">✕</button>
                 </div>
                 <textarea id="transmission-body" rows="6" class="input-field resize-none font-light" placeholder="Input secure payload..."></textarea>
                 <div id="trans-status" class="hidden text-[10px] font-bold text-blue-600 uppercase tracking-widest italic"></div>
-                <button onclick="executeTransmission()" id="trans-btn" class="btn-ciu text-blue-600 border-blue-900/30">Authorize Sync</button>
+                <button onclick="window.executeTransmission()" id="trans-btn" class="btn-ciu text-blue-600 border-blue-900/30">Authorize Sync</button>
             </div>
         </div>
 
@@ -296,8 +265,8 @@
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global Variables
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'ciu-terminal-site-45';
+        // Firebase Config
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'site-45-ciu-terminal';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "", authDomain: "", projectId: "", storageBucket: "", messagingSenderId: "", appId: ""
         };
@@ -306,7 +275,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Operative Database
         const operatives = {
             "north": { name: "Marie Coleman", key: "CIUAGENT", greet: "Welcome Marie Coleman" },
             "talli": { name: "Auditor", key: "Oversight", greet: "Welcome Auditor" }
@@ -316,6 +284,7 @@
         let isGuestMode = false;
         let typingLock = false;
 
+        // UI Selectors
         const opIdInput = document.getElementById('op-id-input');
         const opKeyInput = document.getElementById('op-key-input');
         const bootConsole = document.getElementById('boot-console');
@@ -337,11 +306,12 @@
                 }
                 typingLock = false;
             } else if (!operatives[val]) {
-                opKeyInput.value = "";
+                // Do not clear the key if they are typing manually
+                if (val === "") opKeyInput.value = "";
             }
         });
 
-        // --- TRANSITION LOGIC ---
+        // --- ATTACH TO WINDOW FOR HTML ACCESS ---
         window.beginSystemBoot = async (mode) => {
             const id = opIdInput.value.toLowerCase().trim();
             if (mode === 'agent' && !operatives[id]) {
@@ -363,7 +333,6 @@
                 "Syncing RAISA Manifest 45-Alpha...",
                 `Target Operative: ${currentOperative.name}`,
                 "Establishing Quantum Tunnel...",
-                "Clearing Memetic Cache...",
                 "Node RES-45-A accessible.",
                 "Handshake complete. Awaiting Secondary Pulse."
             ];
@@ -376,7 +345,7 @@
                 const progress = ((i + 1) / logs.length) * 100;
                 bootBar.style.width = progress + '%';
                 bootPct.textContent = Math.round(progress) + '%';
-                await new Promise(r => setTimeout(r, 150 + Math.random() * 200));
+                await new Promise(r => setTimeout(r, 200));
             }
 
             setTimeout(() => {
@@ -394,7 +363,6 @@
             log.textContent = "VERIFYING SIGNATURE...";
             log.classList.add('text-blue-500');
 
-            // Authenticate (Rule 3)
             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                 await signInWithCustomToken(auth, __initial_auth_token);
             } else {
@@ -417,17 +385,14 @@
                     document.getElementById('terminal-layer').classList.remove('hidden-section');
                     initializeData();
                 }, 800);
-            }, 1200);
+            }, 1000);
         };
 
-        // --- DATA SYNC ---
         function initializeData() {
-            // Rule 1 Path
             const ref = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
             onSnapshot(ref, (snap) => {
                 const messages = [];
                 snap.forEach(doc => messages.push(doc.data()));
-                // Rule 2 Sorting
                 messages.sort((a, b) => (a.timestamp?.toMillis() || 0) - (b.timestamp?.toMillis() || 0));
                 renderComms(messages);
             });
@@ -442,25 +407,19 @@
         function renderComms(msgs) {
             commsBuffer.innerHTML = `<div class="text-[9px] text-gray-800 font-bold text-center uppercase tracking-[0.6em] my-12">--- Secured Buffer Initialized ---</div>`;
             msgs.forEach(m => {
-                const hash = Math.random().toString(36).substring(7).toUpperCase();
                 commsBuffer.innerHTML += `
                     <div class="message-entry">
-                        <div class="flex justify-between items-center mb-3 border-b border-gray-900 pb-2 opacity-60">
+                        <div class="flex justify-between items-center mb-2 border-b border-gray-900 pb-2 opacity-60">
                             <span class="text-[9px] font-bold text-blue-500 uppercase tracking-widest">${m.sender}</span>
                             <span class="text-[8px] font-mono">${m.timeLabel || 'ARCHIVE'}</span>
                         </div>
                         <div class="text-[11px] text-gray-400 font-light leading-relaxed">${m.body}</div>
-                        <div class="mt-3 flex space-x-4 opacity-20 text-[7px] font-bold uppercase tracking-tighter">
-                            <span>Hash: ${hash}</span>
-                            <span>Memetic State: CLEAR</span>
-                        </div>
                     </div>
                 `;
             });
             commsBuffer.scrollTop = commsBuffer.scrollHeight;
         }
 
-        // --- ACTIONS ---
         window.openTransmitModal = () => document.getElementById('transmit-modal').classList.remove('hidden-section');
         window.closeTransmitModal = () => {
             document.getElementById('transmit-modal').classList.add('hidden-section');
@@ -470,18 +429,8 @@
         window.executeTransmission = async () => {
             const body = document.getElementById('transmission-body').value.trim();
             if (!body || !auth.currentUser) return;
-
             const btn = document.getElementById('trans-btn');
-            const status = document.getElementById('trans-status');
             btn.disabled = true;
-            status.classList.remove('hidden');
-            
-            const steps = ["Sealing Payload...", "Generating Hash...", "Broadcasting..."];
-            for (let step of steps) {
-                status.textContent = `> ${step}`;
-                await new Promise(r => setTimeout(r, 500));
-            }
-
             try {
                 await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'messages'), {
                     sender: currentOperative.name,
