@@ -38,6 +38,8 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            pointer-events: none; /* Allow interaction once faded */
+            transition: opacity 1s ease-out;
         }
 
         .boot-line {
@@ -197,7 +199,7 @@
 
         .scipnet-stream {
             font-size: 0.65rem;
-            color: #00ff41; /* Classic data green for deep code */
+            color: #00ff41; 
             white-space: pre;
             line-height: 1.1;
         }
@@ -388,11 +390,20 @@
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, addDoc, onSnapshot, query, updateDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const firebaseConfig = JSON.parse(__firebase_config);
+        // Safety wrap for environment variables
+        const getFirebaseConfig = () => {
+            try {
+                if (typeof __firebase_config !== 'undefined') return JSON.parse(__firebase_config);
+            } catch (e) {}
+            return { apiKey: "fake-key", authDomain: "fake.firebaseapp.com", projectId: "fake-project", storageBucket: "fake.appspot.com", messagingSenderId: "000", appId: "fake-app" };
+        };
+        
+        const firebaseConfig = getFirebaseConfig();
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'ciu-terminal-local';
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'ciu-terminal-v6';
 
         const PROFILES = {
             'Equinox': { pass: 'CIUDIRECTOR', role: 'Director', color: '#ff00ff' },
@@ -432,17 +443,24 @@
         ];
 
         async function startBoot() {
+            if (!bootOverlay) return;
+            bootOverlay.style.display = 'flex';
+            bootOverlay.style.opacity = '1';
+            bootOverlay.innerHTML = '';
+
             for (let line of bootLines) {
                 const div = document.createElement('div');
                 div.className = 'boot-line';
                 div.textContent = `> ${line}`;
                 bootOverlay.appendChild(div);
-                await new Promise(r => setTimeout(r, 600));
+                await new Promise(r => setTimeout(r, 400));
             }
-            await new Promise(r => setTimeout(r, 1000));
+            await new Promise(r => setTimeout(r, 800));
             bootOverlay.style.opacity = '0';
-            setTimeout(() => bootOverlay.style.display = 'none', 1000);
-            printIntro();
+            setTimeout(() => {
+                bootOverlay.style.display = 'none';
+                printIntro();
+            }, 1000);
         }
 
         // Logic Loop
@@ -482,17 +500,16 @@
             `);
         };
 
-        // SCIPNET Mumbo Jumbo Runner
         async function runScipnetMumboJumbo(title) {
             scipnetOverlay.style.display = 'flex';
             scipnetOutput.innerHTML = '';
-            const steps = 40;
+            const steps = 30;
             for(let i=0; i<steps; i++) {
                 const hex = Array.from({length: 12}, () => Math.floor(Math.random() * 16).toString(16)).join('').toUpperCase();
                 scipnetOutput.innerHTML += `SCIPNET_V4_VERIFYING_PARITY [0x${hex}] - STEP ${i}/${steps}\n`;
                 scipnetOutput.innerHTML += `UPLINK_ENCRYPTION_LAYER_${Math.floor(Math.random()*9)}... OK\n`;
                 scipnetOutput.scrollTop = scipnetOutput.scrollHeight;
-                await new Promise(r => setTimeout(r, 80));
+                await new Promise(r => setTimeout(r, 60));
             }
             scipnetOverlay.style.display = 'none';
         }
@@ -504,6 +521,7 @@
                 [nums[i], nums[j]] = [nums[j], nums[i]];
             }
             const container = document.getElementById('random-keypad');
+            if (!container) return;
             container.innerHTML = '';
             nums.forEach(n => {
                 const btn = document.createElement('button');
@@ -537,9 +555,11 @@
                     break;
                 case 'msg':
                     if (!currentUser) return print('GUEST_MODE: SEND BLOCKED.', 'error');
-                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'messages'), {
-                        sender: currentUser, role: currentRole, text: args.slice(1).join(' '), timestamp: Date.now()
-                    });
+                    try {
+                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'messages'), {
+                            sender: currentUser, role: currentRole, text: args.slice(1).join(' '), timestamp: Date.now()
+                        });
+                    } catch(e) { print('DATABASE OFFLINE (LOCAL MODE).', 'error'); }
                     break;
                 case 'clear': output.innerHTML = ''; break;
                 case 'status': print('REALITY: 1.000 | HUME: 1.02 | SCIPNET: ACTIVE'); break;
@@ -571,13 +591,13 @@
 
         window.openAuthPortal = () => {
             shuffleKeypad();
-            authOverlay.style.display = 'block';
+            if (authOverlay) authOverlay.style.display = 'block';
             interactivePinInput = '';
             document.getElementById('auth-keypad-container').style.display = 'block';
             document.getElementById('auth-handshake').style.display = 'none';
         };
 
-        window.closeAuth = () => { authOverlay.style.display = 'none'; };
+        window.closeAuth = () => { if (authOverlay) authOverlay.style.display = 'none'; };
 
         window.pressKey = (key) => {
             if (key === 'C') interactivePinInput = '';
@@ -593,11 +613,8 @@
         window.triggerCardSync = async () => {
             const btn = document.getElementById('sync-btn');
             btn.textContent = "SYNCING..."; btn.disabled = true;
-            await new Promise(r => setTimeout(r, 1000));
-            
-            // Post-card mumbo jumbo
+            await new Promise(r => setTimeout(r, 800));
             await runScipnetMumboJumbo("KEYCARD_CHIP_VERIFY");
-            
             btn.textContent = "SYNCED"; btn.className = "bg-cyan-400 text-black px-4 py-2 text-xs";
             document.getElementById('scan-feedback').textContent = "SIGNATURE OK. POSITION RETINA.";
             document.getElementById('eye-btn').style.display = 'inline-block';
@@ -606,11 +623,8 @@
         window.triggerEyeScan = async () => {
             const btn = document.getElementById('eye-btn');
             btn.textContent = "SCANNING...";
-            await new Promise(r => setTimeout(r, 1500));
-            
-            // Post-eye mumbo jumbo
+            await new Promise(r => setTimeout(r, 1000));
             await runScipnetMumboJumbo("BIOMETRIC_HASH_VERIFY");
-            
             currentUser = tempLoginId;
             currentRole = PROFILES[tempLoginId].role;
             updateUIState();
@@ -622,7 +636,8 @@
         window.switchTab = (tab) => {
             currentTab = tab;
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.getElementById(`tab-${tab}`).classList.add('active');
+            const activeTab = document.getElementById(`tab-${tab}`);
+            if (activeTab) activeTab.classList.add('active');
             output.innerHTML = `<div class="opacity-30 mb-4 text-[0.6rem]">--- BUFFER ${tab.toUpperCase()} ---</div>`;
             if (tab === 'comms') fetchMessages();
             if (tab === 'ops') fetchOperations();
@@ -630,7 +645,8 @@
 
         const updateUIState = () => {
             prompt.textContent = `${currentUser ? currentUser.toUpperCase() : 'GUEST'}@CIU:~$`;
-            document.getElementById('user-status').textContent = currentUser ? `AUTH: ${currentRole}` : 'AUTH: UNAUTHORIZED';
+            const statusEl = document.getElementById('user-status');
+            if (statusEl) statusEl.textContent = currentUser ? `AUTH: ${currentRole}` : 'AUTH: UNAUTHORIZED';
             document.querySelectorAll('#active-users span').forEach(s => {
                 s.classList.toggle('opacity-100', s.textContent === currentUser);
             });
@@ -638,46 +654,54 @@
 
         const fetchMessages = () => {
             if (currentTab !== 'comms') return;
-            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'messages'), (snap) => {
-                if (currentTab !== 'comms') return;
-                output.innerHTML = '';
-                const msgs = [];
-                snap.forEach(d => msgs.push(d.data()));
-                msgs.sort((a,b) => a.timestamp - b.timestamp).slice(-50).forEach(m => {
-                    const time = new Date(m.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                    print(`<span class="opacity-40">[${time}]</span> <span style="color: ${PROFILES[m.sender]?.color || '#00e5ff'}; font-weight:bold">${m.sender}</span>: ${m.text}`);
-                });
-            });
+            try {
+                onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'messages'), (snap) => {
+                    if (currentTab !== 'comms') return;
+                    output.innerHTML = '';
+                    const msgs = [];
+                    snap.forEach(d => msgs.push(d.data()));
+                    msgs.sort((a,b) => a.timestamp - b.timestamp).slice(-50).forEach(m => {
+                        const time = new Date(m.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        print(`<span class="opacity-40">[${time}]</span> <span style="color: ${PROFILES[m.sender]?.color || '#00e5ff'}; font-weight:bold">${m.sender}</span>: ${m.text}`);
+                    });
+                }, (err) => { console.log("Snapshot error suppressed."); });
+            } catch(e) {}
         };
 
         const fetchOperations = () => {
             if (currentTab !== 'ops') return;
-            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'operations'), (snap) => {
-                if (currentTab !== 'ops') return;
-                output.innerHTML = '<span class="text-xl font-bold text-cyan-400">CIU_OPS_CONTROL</span><br><br>';
-                snap.forEach(d => {
-                    const data = d.data();
-                    const isAdmin = currentRole === 'Admin' || currentRole === 'Director';
-                    print(`
-                        <div class="op-card">
-                            <div class="flex justify-between border-b border-cyan-900 mb-2">
-                                <span class="font-bold">${data.title}</span>
-                                <span class="text-[0.6rem] opacity-30">${d.id.substring(0,6)}</span>
+            try {
+                onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'operations'), (snap) => {
+                    if (currentTab !== 'ops') return;
+                    output.innerHTML = '<span class="text-xl font-bold text-cyan-400">CIU_OPS_CONTROL</span><br><br>';
+                    snap.forEach(d => {
+                        const data = d.data();
+                        const isAdmin = currentRole === 'Admin' || currentRole === 'Director';
+                        print(`
+                            <div class="op-card">
+                                <div class="flex justify-between border-b border-cyan-900 mb-2">
+                                    <span class="font-bold">${data.title}</span>
+                                    <span class="text-[0.6rem] opacity-30">${d.id.substring(0,6)}</span>
+                                </div>
+                                <div class="text-[10px]">AGENT: ${data.assigned} | STATUS: ${data.status}</div>
+                                ${isAdmin ? `<div class="mt-2 flex gap-2">
+                                    <button onclick="assignOp('${d.id}', 'North')" class="text-[9px] bg-cyan-900/40 border border-cyan-500/50 px-2">North</button>
+                                    <button onclick="assignOp('${d.id}', 'Talli')" class="text-[9px] bg-cyan-900/40 border border-cyan-500/50 px-2">Talli</button>
+                                    <button onclick="deleteOp('${d.id}')" class="text-[9px] bg-red-900 px-2">TERMINATE</button>
+                                </div>` : ''}
                             </div>
-                            <div class="text-[10px]">AGENT: ${data.assigned} | STATUS: ${data.status}</div>
-                            ${isAdmin ? `<div class="mt-2 flex gap-2">
-                                <button onclick="assignOp('${d.id}', 'North')" class="text-[9px] bg-cyan-900/40 border border-cyan-500/50 px-2">North</button>
-                                <button onclick="assignOp('${d.id}', 'Talli')" class="text-[9px] bg-cyan-900/40 border border-cyan-500/50 px-2">Talli</button>
-                                <button onclick="deleteOp('${d.id}')" class="text-[9px] bg-red-900 px-2">TERMINATE</button>
-                            </div>` : ''}
-                        </div>
-                    `);
-                });
-            });
+                        `);
+                    });
+                }, (err) => {});
+            } catch(e) {}
         };
 
-        window.assignOp = async (id, user) => { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'operations', id), { assigned: user, status: 'ACTIVE' }); };
-        window.deleteOp = async (id) => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'operations', id)); };
+        window.assignOp = async (id, user) => { 
+            try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'operations', id), { assigned: user, status: 'ACTIVE' }); } catch(e) {}
+        };
+        window.deleteOp = async (id) => { 
+            try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'operations', id)); } catch(e) {}
+        };
 
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
@@ -688,9 +712,12 @@
         });
 
         const init = async () => {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                await signInWithCustomToken(auth, __initial_auth_token);
-            } else { await signInAnonymously(auth); }
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else { await signInAnonymously(auth); }
+            } catch(e) { console.log("Auth skipped or failed."); }
+            
             onAuthStateChanged(auth, (user) => { if (user) updateUIState(); });
             startBoot();
         };
