@@ -1,482 +1,700 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CIU | Site-45 Secure Terminal</title>
+    <title>CIU | Resh-1 Tactical Interface v6.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&display=swap');
-
         :root {
-            --ciu-blue: #3b82f6;
-            --ciu-red: #ef4444;
-            --ciu-bg: #030303;
-            --ciu-border: rgba(255, 255, 255, 0.08);
-            --ciu-glow: rgba(59, 130, 246, 0.3);
+            --term-blue: #00e5ff;
+            --term-glow: rgba(0, 229, 255, 0.4);
+            --term-bg: #030a0d;
+            --term-dim: #003344;
+            --term-border: #0088aa;
+            --resh-red: #ff3d3d;
         }
 
         body {
-            background-color: var(--ciu-bg);
-            color: #d1d5db;
-            font-family: 'JetBrains+Mono', monospace;
+            background-color: var(--term-bg);
+            color: var(--term-blue);
+            font-family: 'Fira Code', monospace;
+            margin: 0;
             overflow: hidden;
             height: 100vh;
-            margin: 0;
+            display: flex;
+            flex-direction: column;
+            text-shadow: 0 0 5px var(--term-glow);
         }
 
-        /* Terminal Overlays */
-        .crt-overlay {
-            position: fixed; inset: 0; pointer-events: none; z-index: 999;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
-            background-size: 100% 3px, 3px 100%;
-        }
-
-        .scanline {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100px;
-            background: linear-gradient(0deg, transparent, rgba(59, 130, 246, 0.05), transparent);
-            z-index: 998; pointer-events: none;
-            animation: scan 10s linear infinite;
-        }
-
-        @keyframes scan { 0% { transform: translateY(-100px); } 100% { transform: translateY(100vh); } }
-
-        .glass-panel {
-            background: rgba(10, 10, 10, 0.98);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--ciu-border);
-            box-shadow: 0 0 50px rgba(0,0,0,0.9);
-        }
-
-        .input-field {
-            background: rgba(0,0,0,0.8);
-            border: 1px solid #1a1a1a;
-            padding: 1rem;
-            border-radius: 4px;
-            color: #fff;
-            outline: none;
-            transition: all 0.3s;
-            width: 100%;
-            font-size: 0.875rem;
-        }
-
-        .input-field:focus {
-            border-color: var(--ciu-blue);
-            box-shadow: 0 0 15px var(--ciu-glow);
-        }
-
-        .btn-ciu {
-            background: #0a0a0a;
-            border: 1px solid #222;
-            padding: 1rem;
-            text-transform: uppercase;
-            font-weight: bold;
-            font-size: 0.75rem;
-            letter-spacing: 0.3em;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
+        /* Power-on Overlay */
+        #boot-sequence {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            z-index: 9999;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
             overflow: hidden;
+        }
+
+        .boot-line {
+            font-size: 0.8rem;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            border-right: 2px solid var(--term-blue);
+            width: 0;
+            animation: typing 0.5s steps(40, end) forwards;
+        }
+
+        @keyframes typing { from { width: 0 } to { width: 100% } }
+
+        /* Ambient Effects */
+        body::after {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 229, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 229, 255, 0.05) 1px, transparent 1px);
+            background-size: 35px 35px;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        body::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(10, 20, 30, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+            z-index: 1000;
+            background-size: 100% 3px, 2px 100%;
+            pointer-events: none;
+            animation: flicker 0.2s infinite;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.98; }
+            5% { opacity: 0.96; }
+            100% { opacity: 1; }
+        }
+
+        .crt-vignette {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 50%, rgba(0,0,0,0.7) 100%);
+            pointer-events: none;
+            z-index: 1001;
+        }
+
+        /* Navigation */
+        .nav-tabs {
+            display: flex;
+            border-bottom: 2px solid var(--term-border);
+            background: rgba(0, 30, 45, 0.7);
+            backdrop-filter: blur(8px);
+        }
+
+        .tab {
+            padding: 14px 22px;
+            cursor: pointer;
+            border-right: 1px solid var(--term-border);
+            font-size: 0.75rem;
+            font-weight: bold;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .tab:hover { background: rgba(0, 229, 255, 0.1); }
+        .tab.active {
+            background: var(--term-blue);
+            color: var(--term-bg);
+            box-shadow: 0 0 25px var(--term-glow);
+        }
+
+        #main-container {
+            flex-grow: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        #terminal-view {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--term-border);
+        }
+
+        #output {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 25px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--term-dim) transparent;
+        }
+
+        .input-area {
+            display: flex;
+            padding: 15px;
+            background: rgba(0, 229, 255, 0.05);
+            border-top: 1px solid var(--term-border);
+            align-items: center;
+        }
+
+        input {
+            background: transparent;
+            border: none;
+            color: var(--term-blue);
+            flex-grow: 1;
+            outline: none;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.95rem;
+        }
+
+        /* Sidebar */
+        #sidebar {
+            width: 360px;
+            background: rgba(0, 10, 15, 0.8);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            border-left: 1px solid var(--term-border);
+        }
+
+        .side-module {
+            border: 1px solid var(--term-border);
+            padding: 12px;
+            background: rgba(0, 50, 70, 0.2);
+            font-size: 0.7rem;
+        }
+
+        .side-header {
+            font-weight: bold;
+            border-bottom: 1px solid var(--term-border);
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            color: var(--term-blue);
+        }
+
+        /* SCIPNET.V4 Readout Overlay */
+        #scipnet-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 10, 15, 0.95);
+            z-index: 5000;
+            display: none;
+            padding: 40px;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .scipnet-stream {
+            font-size: 0.65rem;
+            color: #00ff41; /* Classic data green for deep code */
+            white-space: pre;
+            line-height: 1.1;
+        }
+
+        /* Auth Overlay */
+        #auth-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 480px;
+            background: #010508;
+            border: 2px solid var(--term-blue);
+            box-shadow: 0 0 50px var(--term-glow);
+            z-index: 2000;
+            padding: 25px;
+            display: none;
+        }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .key-btn {
+            background: var(--term-dim);
+            border: 1px solid var(--term-blue);
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.15s;
+            color: var(--term-blue);
+        }
+
+        .key-btn:hover { background: var(--term-blue); color: #000; }
+        .key-btn:active { transform: scale(0.95); }
+
+        .loading-progress {
+            height: 100%;
+            background: var(--term-blue);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .scanner-line {
+            height: 2px;
+            background: #fff;
+            box-shadow: 0 0 15px #fff;
+            position: absolute;
             width: 100%;
+            top: 0;
+            animation: scan 2.5s linear infinite;
         }
 
-        .btn-ciu:hover:not(:disabled) {
-            background: #111;
-            border-color: var(--ciu-blue);
-            color: #fff;
-            box-shadow: 0 0 25px var(--ciu-glow);
+        @keyframes scan {
+            0% { top: 0%; }
+            50% { top: 100%; }
+            100% { top: 0%; }
         }
 
-        .btn-ciu:disabled { opacity: 0.2; cursor: not-allowed; }
-
-        .message-entry {
-            border-left: 2px solid var(--ciu-blue);
-            background: rgba(59, 130, 246, 0.02);
-            padding: 1.25rem;
-            margin-bottom: 1rem;
-            animation: slideUp 0.4s ease-out;
+        .action-required {
+            background: rgba(255, 61, 61, 0.15);
+            border: 1px dashed var(--resh-red);
+            padding: 10px;
+            margin: 10px 0;
+            font-weight: bold;
+            color: var(--resh-red);
+            animation: pulse-red 2.5s infinite;
         }
 
-        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .hidden-section { display: none !important; }
-
-        .glitch-text { position: relative; }
-        .glitch-text::after {
-            content: attr(data-text);
-            position: absolute; left: 2px; text-shadow: -1px 0 red;
-            top: 0; color: white; background: transparent;
-            overflow: hidden; clip: rect(0, 900px, 0, 0);
-            animation: glitch-anim 2s infinite linear alternate-reverse;
-        }
-
-        @keyframes glitch-anim { 0% { clip: rect(15px, 9999px, 30px, 0); } 20% { clip: rect(45px, 9999px, 10px, 0); } 100% { clip: rect(25px, 9999px, 85px, 0); } }
-
-        .viz-bar { width: 3px; background: var(--ciu-blue); animation: barPulse 1.2s infinite ease-in-out; opacity: 0.5; }
-        @keyframes barPulse { 0%, 100% { height: 20%; } 50% { height: 100%; } }
-
-        .purge-mode { animation: screenShake 0.1s infinite; filter: invert(1) brightness(2); }
-        @keyframes screenShake { 0% { transform: translate(2px, 1px); } 50% { transform: translate(-2px, -1px); } }
+        @keyframes pulse-red { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
-    <div class="crt-overlay"></div>
-    <div class="scanline"></div>
+    <div class="crt-vignette"></div>
 
-    <div id="terminal-viewport" class="h-screen w-full flex items-center justify-center p-4">
+    <!-- Power-on Overlay -->
+    <div id="boot-sequence"></div>
+
+    <!-- SCIPNET Readout Tab/Overlay -->
+    <div id="scipnet-overlay">
+        <div class="flex justify-between items-center mb-4 border-b border-[#00ff41] pb-2">
+            <span class="text-xl font-bold text-[#00ff41]">SCIPNET.V4_CORE_VERIFY</span>
+            <span class="animate-pulse text-[#00ff41]">PROCESS_ACTIVE</span>
+        </div>
+        <div id="scipnet-output" class="scipnet-stream"></div>
+    </div>
+
+    <!-- Interactive Auth Portal -->
+    <div id="auth-overlay">
+        <div class="text-center mb-4">
+            <pre class="text-[0.5rem] leading-none text-red-500">
+██████╗ ███████╗███████╗██╗  ██╗   ██╗
+██╔══██╗██╔════╝██╔════╝██║  ██║   ██║
+██████╔╝█████╗  ███████╗███████║   ██║
+██╔══██╗██╔══╝  ╚════██║██╔══██║   ██║
+██║  ██║███████╗███████║██║  ██║   ██║
+╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝   ╚═╝</pre>
+            <div class="text-xs mt-2 tracking-widest">[RESH-1 SEAT OF CONSCIOUSNESS]</div>
+        </div>
         
-        <!-- MODULE 1: AUTHENTICATION -->
-        <section id="auth-layer" class="w-full max-w-md p-10 glass-panel rounded border-b-2 border-blue-900/40">
-            <div class="text-center mb-10">
-                <div class="mb-6 inline-flex p-5 rounded bg-blue-950/10 border border-blue-900/20">
-                    <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                    </svg>
-                </div>
-                <h1 class="text-2xl font-bold tracking-[0.5em] uppercase glitch-text" data-text="CIU TERMINAL">CIU TERMINAL</h1>
-                <p class="text-[9px] text-gray-600 mt-2 font-bold tracking-[0.4em] uppercase">Intelligence Node Site-45</p>
+        <div id="auth-display" class="mb-4 text-center border border-dashed p-3 text-sm tracking-widest bg-cyan-900/10">
+            ENTER SESSION TOKEN
+        </div>
+        
+        <div id="auth-keypad-container">
+            <div class="keypad" id="random-keypad"></div>
+            <div class="mt-4 flex gap-2">
+                <button onclick="pressKey('C')" class="flex-1 key-btn text-red-400 border-red-900 bg-red-950/20">CLEAR</button>
+                <button onclick="pressKey('E')" class="flex-1 key-btn text-cyan-400 border-cyan-900 bg-cyan-950/20">VERIFY</button>
             </div>
+        </div>
 
-            <div class="space-y-6">
-                <div>
-                    <label class="text-[8px] font-bold text-gray-600 uppercase tracking-widest block mb-2">Operative Identifier</label>
-                    <input id="op-id-input" type="text" autocomplete="off" class="input-field" placeholder="ID CODE...">
-                </div>
-                <div>
-                    <label class="text-[8px] font-bold text-gray-600 uppercase tracking-widest block mb-2">Handshake Key</label>
-                    <input id="op-key-input" type="password" class="input-field text-blue-500 font-bold" placeholder="ENCRYPTION KEY">
-                </div>
-                <button id="auth-btn" class="btn-ciu">Authenticate</button>
-                <div class="pt-6 border-t border-gray-900 text-center">
-                    <button id="guest-btn" class="text-[9px] font-bold text-gray-700 hover:text-blue-500 transition-colors uppercase tracking-[0.3em]">Bypass to Guest Mode</button>
-                </div>
+        <div id="auth-handshake" class="space-y-4" style="display: none;">
+            <div class="border border-cyan-500/30 p-4 text-center bg-cyan-900/5">
+                <p class="text-[10px] mb-2 uppercase opacity-70 tracking-widest">Keycard Physical Handshake</p>
+                <button onclick="triggerCardSync()" id="sync-btn" class="bg-cyan-900/40 border border-cyan-400 px-4 py-2 text-xs hover:bg-cyan-400 hover:text-black transition-colors">INITIALIZE SYNC</button>
             </div>
-            <div id="auth-msg" class="mt-4 text-[9px] text-red-900 font-bold uppercase text-center opacity-0 transition-opacity">Access Denied: Buffer Mismatch</div>
-        </section>
+            <div class="border border-red-500/30 p-4 text-center relative overflow-hidden h-28 bg-red-950/5">
+                <div class="scanner-line"></div>
+                <p class="text-[10px] mb-2 uppercase opacity-70 tracking-widest">Retinal Biometric Analysis</p>
+                <button onclick="triggerEyeScan()" id="eye-btn" class="mt-2 bg-red-900/40 border border-red-400 px-4 py-2 text-xs hover:bg-red-400 hover:text-black transition-colors" style="display:none;">ENGAGE SCAN</button>
+                <div id="scan-feedback" class="text-[9px] mt-2 animate-pulse opacity-50 uppercase">Awaiting Verification Step 1...</div>
+            </div>
+        </div>
 
-        <!-- MODULE 2: INITIALIZATION -->
-        <section id="boot-layer" class="hidden-section w-full max-w-2xl glass-panel p-10 rounded border-t-2 border-blue-900/40">
-            <div class="flex justify-between items-center mb-8">
-                <div class="text-[10px] text-blue-500 font-bold uppercase tracking-widest animate-pulse">Syncing Site-45 Relay...</div>
-                <div id="boot-pct" class="text-[10px] text-gray-700 font-mono">0%</div>
-            </div>
-            <div id="boot-console" class="h-72 overflow-y-auto font-mono text-[10px] text-gray-600 space-y-2 pr-4 mb-8"></div>
-            <div class="w-full bg-black h-1 rounded overflow-hidden border border-gray-900">
-                <div id="boot-bar" class="bg-blue-600 h-full w-0 transition-all duration-300"></div>
-            </div>
-        </section>
+        <button onclick="closeAuth()" class="mt-6 text-[10px] underline block mx-auto opacity-30 hover:opacity-100 transition-opacity">ABORT AUTHENTICATION</button>
+    </div>
 
-        <!-- MODULE 3: PHYSICAL SIGNATURE -->
-        <section id="verify-layer" class="hidden-section w-full max-w-md glass-panel p-12 text-center flex flex-col items-center">
-            <h2 id="verify-header" class="text-xl font-bold tracking-[0.3em] mb-4">CIU SIGNATURE</h2>
-            <p id="verify-info" class="text-[9px] text-gray-600 font-bold uppercase tracking-[0.4em] mb-12">Hardware Verification Required</p>
-            <div id="badge-scan-trigger" class="group relative p-12 border-2 border-dashed border-gray-800 rounded-3xl hover:border-blue-600 transition-all active:scale-95 cursor-pointer">
-                <svg class="w-20 h-20 text-gray-900 group-hover:text-blue-500 transition-colors duration-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="0.5" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
-                </svg>
-                <div class="mt-8 text-[9px] font-bold text-gray-700 uppercase tracking-widest group-hover:text-blue-400">Scan CIU ID Card</div>
-            </div>
-            <div id="verify-log" class="mt-10 text-[9px] text-gray-700 italic tracking-widest">Listening for NFC Pulse...</div>
-        </section>
+    <!-- UI Core -->
+    <div class="flex justify-between items-center px-4 py-1 text-[0.65rem] bg-[#001015] border-b border-[#00e5ff] tracking-widest uppercase">
+        <div class="flex gap-6">
+            <span>NODE: <span class="text-cyan-400 font-bold">RESH-1-PRIME</span></span>
+            <span>UPLINK: <span class="text-cyan-400">SCIPNET.V4_ENABLED</span></span>
+        </div>
+        <div class="flex gap-6">
+            <span id="user-status">AUTH: UNAUTHORIZED</span>
+            <span id="clock">00:00:00</span>
+        </div>
+    </div>
 
-        <!-- MODULE 4: MAIN INTERFACE -->
-        <section id="terminal-layer" class="hidden-section w-full h-[95vh] max-w-7xl glass-panel rounded overflow-hidden flex flex-col transition-opacity duration-1000">
-            <header class="p-6 border-b border-gray-900 bg-black/60 flex justify-between items-center">
-                <div class="flex items-center space-x-6">
-                    <div class="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_15px_#10b981] animate-pulse"></div>
+    <div class="nav-tabs">
+        <div class="tab active" onclick="switchTab('access')" id="tab-access">01_ACCESS</div>
+        <div class="tab" onclick="switchTab('comms')" id="tab-comms">02_TRANSMS</div>
+        <div class="tab" onclick="switchTab('ops')" id="tab-ops">03_OPERATIONS</div>
+        <div class="tab" onclick="switchTab('system')" id="tab-system">04_SYSLOG</div>
+    </div>
+
+    <div id="main-container">
+        <div id="terminal-view">
+            <div id="output"></div>
+            <div class="input-area">
+                <span id="prompt" class="mr-3 font-bold text-sm tracking-tighter opacity-80">GUEST@CIU:~$</span>
+                <input type="text" id="terminal-input" autocomplete="off" spellcheck="false" placeholder="Awaiting protocol command...">
+            </div>
+        </div>
+
+        <div id="sidebar">
+            <div class="side-module">
+                <div class="side-header">SCIPNET_V4 STATUS</div>
+                <div class="space-y-3">
                     <div>
-                        <h2 class="text-xs font-bold tracking-[0.3em] text-white uppercase">CIU LIVE FEED: SITE-45</h2>
-                        <p id="welcome-header" class="text-[8px] text-gray-600 font-bold tracking-[0.4em] mt-1 uppercase">Node-45-Alpha | Connected</p>
+                        <div class="flex justify-between mb-1"><span>PARITY_LOCK</span><span id="p-lock">YES</span></div>
+                        <div class="loading-bar"><div class="loading-progress" style="width: 100%"></div></div>
                     </div>
                 </div>
-                <div class="flex items-center space-x-6">
-                    <div id="guest-badge" class="hidden px-3 py-1 border border-yellow-900/50 bg-yellow-950/20 text-yellow-600 text-[8px] font-bold uppercase rounded">Guest Access</div>
-                    <button id="purge-node-btn" class="btn-ciu hover:text-red-500 hover:border-red-500 px-4 py-2 text-[9px] w-auto">Purge Node</button>
-                </div>
-            </header>
-
-            <div class="flex-1 flex overflow-hidden">
-                <aside class="w-72 border-r border-gray-900 p-6 flex flex-col space-y-8 bg-black/40">
-                    <div class="p-5 rounded border border-gray-800 bg-black/60">
-                        <div class="text-[8px] text-gray-600 uppercase font-bold tracking-widest mb-4">Node Operative</div>
-                        <div class="flex items-center space-x-4">
-                            <div class="w-12 h-12 bg-gray-900 border border-gray-800 flex items-center justify-center text-blue-900 text-xl">👤</div>
-                            <div>
-                                <div id="op-display-name" class="text-[11px] font-bold text-gray-200 uppercase">[REDACTED]</div>
-                                <div id="op-clearance" class="text-[8px] text-blue-600 font-bold tracking-widest">Level 5 Clearance</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex-1 flex flex-col space-y-4">
-                        <div class="text-[8px] text-gray-600 uppercase font-bold tracking-widest mb-6">System Status</div>
-                        <div class="space-y-5">
-                            <div>
-                                <div class="flex justify-between text-[8px] text-gray-700 uppercase mb-2"><span>Memetic Load</span><span id="tel-mem">32%</span></div>
-                                <div class="h-1 bg-gray-900 rounded overflow-hidden"><div id="tel-mem-bar" class="h-full bg-blue-600" style="width: 32%"></div></div>
-                            </div>
-                            <div class="h-8 flex items-end space-x-1">
-                                <div class="viz-bar"></div><div class="viz-bar" style="animation-delay: 0.2s"></div><div class="viz-bar" style="animation-delay: 0.5s"></div><div class="viz-bar" style="animation-delay: 0.3s"></div><div class="viz-bar" style="animation-delay: 0.7s"></div>
-                            </div>
-                        </div>
-
-                        <!-- RAISA Permission Button -->
-                        <div id="admin-controls" class="hidden pt-6 border-t border-gray-900">
-                             <button id="open-perms-btn" class="btn-ciu text-yellow-500 border-yellow-900/30 text-[9px]">RAISA Permission Node</button>
-                        </div>
-                    </div>
-                    <button id="transmit-trigger" class="btn-ciu text-blue-500 border-blue-900/30">Transmit Message</button>
-                </aside>
-                <main class="flex-1 flex flex-col bg-black/10">
-                    <div id="comms-buffer" class="flex-1 overflow-y-auto p-12">
-                        <div class="text-[9px] text-gray-800 font-bold text-center uppercase tracking-[0.6em] my-12">--- Secured Buffer Initialized ---</div>
-                    </div>
-                </main>
             </div>
-        </section>
-
-        <!-- TRANSMISSION MODAL -->
-        <div id="transmit-modal" class="hidden-section fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/95 backdrop-blur-2xl">
-            <div class="w-full max-w-2xl glass-panel rounded p-12 space-y-8">
-                <div class="flex justify-between items-center border-b border-gray-900 pb-6">
-                    <h3 class="text-[11px] font-bold text-blue-500 uppercase tracking-widest">New Transmission</h3>
-                    <button id="close-transmit-btn" class="text-gray-600 hover:text-white transition-colors">✕</button>
+            <div class="side-module flex-grow overflow-hidden">
+                <div class="side-header">KERNEL_LOGS</div>
+                <div id="data-stream" class="text-[9px] leading-tight text-cyan-600 font-mono opacity-60"></div>
+            </div>
+            <div class="side-module">
+                <div class="side-header">AUTHORIZED_NODES</div>
+                <div id="active-users" class="flex flex-wrap gap-2 text-[10px]">
+                    <span class="border border-cyan-900 px-2 opacity-40">Equinox</span>
+                    <span class="border border-cyan-900 px-2 opacity-40">Talli</span>
+                    <span class="border border-cyan-900 px-2 opacity-40">North</span>
                 </div>
-                <textarea id="transmission-body" rows="6" class="input-field resize-none font-light" placeholder="Input secure payload..."></textarea>
-                <div id="trans-status" class="hidden text-[10px] font-bold text-blue-600 uppercase tracking-widest italic"></div>
-                <button id="execute-trans-btn" class="btn-ciu text-blue-600 border-blue-900/30">Authorize Sync</button>
             </div>
         </div>
-
-        <!-- PERMISSION MODAL -->
-        <div id="permission-modal" class="hidden-section fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/95 backdrop-blur-2xl">
-            <div class="w-full max-w-2xl glass-panel rounded p-12 space-y-6">
-                <div class="flex justify-between items-center border-b border-gray-800 pb-4">
-                    <h3 class="text-[10px] font-bold text-yellow-600 uppercase tracking-widest">Operative Permission Node</h3>
-                    <button id="close-perms-btn" class="text-gray-600 hover:text-white">✕</button>
-                </div>
-                <div id="permission-list" class="space-y-4 py-4"></div>
-                <p class="text-[7px] text-gray-700 italic">Syncing RAISA Protocols...</p>
-            </div>
-        </div>
-
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, addDoc, onSnapshot, query, updateDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase Configuration
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'site-45-ciu-terminal-prod';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "", authDomain: "", projectId: "", storageBucket: "", messagingSenderId: "", appId: ""
-        };
-
+        const firebaseConfig = JSON.parse(__firebase_config);
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'ciu-terminal-v6';
 
-        // Operative Database
-        const operatives = {
-            "north": { id: "north", name: "Marie Coleman", key: "CIUOFFICER", greet: "Welcome Marie Coleman", level: 5 },
-            "talli": { id: "talli", name: "Auditor", key: "TALLI12311", greet: "Welcome Auditor", level: 5, isAdmin: true },
-            "equinox": { id: "equinox", name: "Equinox", key: "CIUDIRECTOR", greet: "Welcome Equinox", level: 5 }
+        const PROFILES = {
+            'Equinox': { pass: 'CIUDIRECTOR', role: 'Director', color: '#ff00ff' },
+            'Talli': { pass: 'TALLI12311', role: 'Admin', color: '#00ffff' },
+            'North': { pass: 'CIUOFFICER', role: 'Admin', color: '#ffff00' }
         };
 
-        let currentOperative = null;
-        let isGuestMode = false;
-        let userPermissions = { canTransmit: true };
+        let currentUser = null;
+        let currentRole = 'Guest';
+        let currentTab = 'access';
+        let terminalState = 'IDLE';
+        let tempLoginId = '';
+        let sessionToken = '';
+        let interactivePinInput = '';
 
-        // --- AUTHENTICATION FLOW ---
-        const handleAuth = async (mode) => {
-            const id = document.getElementById('op-id-input').value.toLowerCase().trim();
-            const key = document.getElementById('op-key-input').value.trim();
+        const output = document.getElementById('output');
+        const input = document.getElementById('terminal-input');
+        const prompt = document.getElementById('prompt');
+        const clock = document.getElementById('clock');
+        const dataStream = document.getElementById('data-stream');
+        const authOverlay = document.getElementById('auth-overlay');
+        const scipnetOverlay = document.getElementById('scipnet-overlay');
+        const scipnetOutput = document.getElementById('scipnet-output');
+        const bootOverlay = document.getElementById('boot-sequence');
 
-            if (mode === 'agent') {
-                if (!operatives[id] || operatives[id].key !== key) {
-                    const err = document.getElementById('auth-msg');
-                    err.style.opacity = '1';
-                    setTimeout(() => err.style.opacity = '0', 3000);
-                    return;
-                }
+        // Initial Boot sequence
+        const bootLines = [
+            "RESH-1 BIOS v6.0.4 - [CIU TACTICAL]",
+            "CPU: MTF NEURAL PROCESSOR @ 5.4GHz",
+            "MEMORY: 128GB CRYPTO-RAM - OK",
+            "INITIALIZING SCIPNET.V4 KERNEL...",
+            "LOADING MEMETIC FILTERS...",
+            "ESTABLISHING SECURE REALITY ANCHORS...",
+            "HANDSHAKING WITH SITE-01 RELAY...",
+            "UPLINK ESTABLISHED. ACCESS PORTAL READY.",
+            "CIU MAIN-SITE TERMINAL OPERATIONAL."
+        ];
+
+        async function startBoot() {
+            for (let line of bootLines) {
+                const div = document.createElement('div');
+                div.className = 'boot-line';
+                div.textContent = `> ${line}`;
+                bootOverlay.appendChild(div);
+                await new Promise(r => setTimeout(r, 600));
             }
+            await new Promise(r => setTimeout(r, 1000));
+            bootOverlay.style.opacity = '0';
+            setTimeout(() => bootOverlay.style.display = 'none', 1000);
+            printIntro();
+        }
 
-            isGuestMode = (mode === 'guest');
-            currentOperative = isGuestMode ? { id: "guest", name: "ANONYMOUS_GUEST", greet: "Welcome Viewer", level: 1 } : operatives[id];
+        // Logic Loop
+        setInterval(() => {
+            clock.textContent = new Date().toLocaleTimeString();
+            const hex = Math.random().toString(16).substring(2, 10).toUpperCase();
+            const log = document.createElement('div');
+            log.innerHTML = `<span class="text-cyan-400">TRAC:</span> 0x${hex} [OK]`;
+            dataStream.prepend(log);
+            if (dataStream.childNodes.length > 30) dataStream.lastChild.remove();
+        }, 2000);
 
-            document.getElementById('auth-layer').classList.add('hidden-section');
-            document.getElementById('boot-layer').classList.remove('hidden-section');
-
-            const bootLogs = [
-                "Locating Site-45 Mainframe...",
-                "Bypassing Node-45 Firewall...",
-                "Syncing Identity Manifest...",
-                `Target: ${currentOperative.name}`,
-                "Establishing Handshake..."
-            ];
-
-            const consoleEl = document.getElementById('boot-console');
-            for (let i = 0; i < bootLogs.length; i++) {
-                const p = document.createElement('div');
-                p.innerHTML = `<span class="text-blue-900 mr-2">></span> ${bootLogs[i]}`;
-                consoleEl.appendChild(p);
-                consoleEl.scrollTop = consoleEl.scrollHeight;
-                document.getElementById('boot-bar').style.width = ((i + 1) / bootLogs.length) * 100 + '%';
-                document.getElementById('boot-pct').textContent = Math.round(((i + 1) / bootLogs.length) * 100) + '%';
-                await new Promise(r => setTimeout(r, 250));
-            }
-
-            setTimeout(() => {
-                document.getElementById('boot-layer').classList.add('hidden-section');
-                document.getElementById('verify-layer').classList.remove('hidden-section');
-            }, 500);
+        const print = (text, type = 'normal') => {
+            const div = document.createElement('div');
+            div.className = `mb-2 ${type === 'error' ? 'text-red-500' : ''} ${type === 'success' ? 'text-cyan-400' : ''} ${type === 'fancy' ? 'font-bold italic' : ''} ${type === 'system' ? 'action-required' : ''}`;
+            div.innerHTML = text;
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
         };
 
-        const verifyIdentity = async () => {
-            const log = document.getElementById('verify-log');
-            log.textContent = "VERIFYING SIGNATURE...";
+        const printIntro = () => {
+            print(`
+                <pre class="text-[0.55rem] leading-none opacity-60">
+ ██████╗██╗██╗   ██╗    ████████╗███████╗██████╗ ███╗   ███╗██╗███╗   ██╗ █████╗ ██╗
+██╔════╝██║██║   ██║    ╚══██╔══╝██╔════╝██╔══██╗████╗ ████║██║████╗  ██║██╔══██╗██║
+██║     ██║██║   ██║       ██║   █████╗  ██████╔╝██╔████╔██║██║██╔██╗ ██║███████║██║
+██║     ██║██║   ██║       ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║██║██║╚██╗██║██╔══██║██║
+╚██████╗██║╚██████╔╝       ██║   ███████╗██║  ██║██║ ╚═╝ ██║██║██║ ╚████║██║  ██║███████╗
+ ╚═════╝╚═╝ ╚═════╝        ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝</pre>
+                <div class="mt-4 text-xs">
+                    <p>> [SECURITY] HEURISTIC KEYPAD RANDOMIZATION: ACTIVE</p>
+                    <p>> [SYSTEM] RESH-1 SEAT OF CONSCIOUSNESS v6.0</p>
+                    <br>
+                    <p class="text-white font-bold underline">SECURITY PROTOCOL SCIPNET.V4</p>
+                    <p class="opacity-70">Type <span class="text-white">'request-token'</span> to initialize auth sequence.</p>
+                </div>
+            `);
+        };
+
+        // SCIPNET Mumbo Jumbo Runner
+        async function runScipnetMumboJumbo(title) {
+            scipnetOverlay.style.display = 'flex';
+            scipnetOutput.innerHTML = '';
+            const steps = 40;
+            for(let i=0; i<steps; i++) {
+                const hex = Array.from({length: 12}, () => Math.floor(Math.random() * 16).toString(16)).join('').toUpperCase();
+                scipnetOutput.innerHTML += `SCIPNET_V4_VERIFYING_PARITY [0x${hex}] - STEP ${i}/${steps}\n`;
+                scipnetOutput.innerHTML += `UPLINK_ENCRYPTION_LAYER_${Math.floor(Math.random()*9)}... OK\n`;
+                scipnetOutput.scrollTop = scipnetOutput.scrollHeight;
+                await new Promise(r => setTimeout(r, 80));
+            }
+            scipnetOverlay.style.display = 'none';
+        }
+
+        const shuffleKeypad = () => {
+            const nums = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+            for (let i = nums.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [nums[i], nums[j]] = [nums[j], nums[i]];
+            }
+            const container = document.getElementById('random-keypad');
+            container.innerHTML = '';
+            nums.forEach(n => {
+                const btn = document.createElement('button');
+                btn.className = 'key-btn';
+                btn.textContent = n;
+                btn.onclick = () => pressKey(n);
+                container.appendChild(btn);
+            });
+        };
+
+        const processCommand = async (cmd) => {
+            const args = cmd.trim().split(' ');
+            const base = args[0].toLowerCase();
+
+            if (terminalState !== 'IDLE') {
+                handleTokenFlow(cmd);
+                return;
+            }
+
+            switch(base) {
+                case 'request-token':
+                    terminalState = 'WAITING_USER';
+                    print('ENTER CIU IDENTIFIER:', 'system');
+                    break;
+                case 'logout':
+                    currentUser = null;
+                    currentRole = 'Guest';
+                    updateUIState();
+                    print('SESSION WIPED.', 'error');
+                    switchTab('access');
+                    break;
+                case 'msg':
+                    if (!currentUser) return print('GUEST_MODE: SEND BLOCKED.', 'error');
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'messages'), {
+                        sender: currentUser, role: currentRole, text: args.slice(1).join(' '), timestamp: Date.now()
+                    });
+                    break;
+                case 'clear': output.innerHTML = ''; break;
+                case 'status': print('REALITY: 1.000 | HUME: 1.02 | SCIPNET: ACTIVE'); break;
+                case 'guestmode': 
+                    currentUser = null; currentRole = 'Guest'; updateUIState(); switchTab('comms');
+                    break;
+                default: if(cmd) print(`CMD '${base}' NOT RECOGNIZED.`);
+            }
+        };
+
+        const handleTokenFlow = async (val) => {
+            if (terminalState === 'WAITING_USER') {
+                const match = Object.keys(PROFILES).find(k => k.toLowerCase() === val.toLowerCase());
+                if (match) {
+                    tempLoginId = match; terminalState = 'WAITING_PASS';
+                    print('ENTER PASSCODE:', 'system'); input.type = 'password';
+                } else { print('ID REJECTED.', 'error'); terminalState = 'IDLE'; }
+            } 
+            else if (terminalState === 'WAITING_PASS') {
+                if (val === PROFILES[tempLoginId].pass) {
+                    input.type = 'text';
+                    sessionToken = Math.floor(1000 + Math.random() * 9000).toString();
+                    print(`TOKEN GENERATED: <span class="text-white underline">${sessionToken}</span>`, 'fancy');
+                    terminalState = 'IDLE';
+                    setTimeout(openAuthPortal, 1000);
+                } else { print('PASS REJECTED.', 'error'); terminalState = 'IDLE'; input.type = 'text'; }
+            }
+        };
+
+        window.openAuthPortal = () => {
+            shuffleKeypad();
+            authOverlay.style.display = 'block';
+            interactivePinInput = '';
+            document.getElementById('auth-keypad-container').style.display = 'block';
+            document.getElementById('auth-handshake').style.display = 'none';
+        };
+
+        window.closeAuth = () => { authOverlay.style.display = 'none'; };
+
+        window.pressKey = (key) => {
+            if (key === 'C') interactivePinInput = '';
+            else if (key === 'E') {
+                if (interactivePinInput === sessionToken) {
+                    document.getElementById('auth-keypad-container').style.display = 'none';
+                    document.getElementById('auth-handshake').style.display = 'block';
+                } else { interactivePinInput = ''; }
+            } else interactivePinInput += key;
+            document.getElementById('auth-display').textContent = `TOKEN: ${interactivePinInput}`;
+        };
+
+        window.triggerCardSync = async () => {
+            const btn = document.getElementById('sync-btn');
+            btn.textContent = "SYNCING..."; btn.disabled = true;
+            await new Promise(r => setTimeout(r, 1000));
             
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch(e) { console.error("Auth Failure:", e); }
-
-            setTimeout(() => {
-                log.textContent = "ACCESS GRANTED.";
-                document.getElementById('op-display-name').textContent = currentOperative.name;
-                document.getElementById('welcome-header').textContent = currentOperative.greet;
-                document.getElementById('op-clearance').textContent = `Level ${currentOperative.level} Clearance`;
-
-                if (isGuestMode) {
-                    document.getElementById('guest-badge').classList.remove('hidden');
-                    document.getElementById('transmit-trigger').disabled = true;
-                    document.getElementById('transmit-trigger').textContent = "LOCKED";
-                } else if (currentOperative.isAdmin) {
-                    document.getElementById('admin-controls').classList.remove('hidden');
-                }
-                
-                document.getElementById('verify-layer').classList.add('hidden-section');
-                document.getElementById('terminal-layer').classList.remove('hidden-section');
-                startTerminalData();
-            }, 1000);
+            // Post-card mumbo jumbo
+            await runScipnetMumboJumbo("KEYCARD_CHIP_VERIFY");
+            
+            btn.textContent = "SYNCED"; btn.className = "bg-cyan-400 text-black px-4 py-2 text-xs";
+            document.getElementById('scan-feedback').textContent = "SIGNATURE OK. POSITION RETINA.";
+            document.getElementById('eye-btn').style.display = 'inline-block';
         };
 
-        // --- DATA SYNC ---
-        const startTerminalData = () => {
-            // Messages
-            const ref = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
-            onSnapshot(ref, (snap) => {
-                const messages = [];
-                snap.forEach(doc => messages.push(doc.data()));
-                messages.sort((a, b) => (a.timestamp?.toMillis() || 0) - (b.timestamp?.toMillis() || 0));
-                
-                const buffer = document.getElementById('comms-buffer');
-                buffer.innerHTML = `<div class="text-[9px] text-gray-800 font-bold text-center uppercase tracking-[0.6em] my-12">--- Secured Feed ---</div>`;
-                messages.forEach(m => {
-                    buffer.innerHTML += `
-                        <div class="message-entry">
-                            <div class="flex justify-between items-center mb-2 border-b border-gray-900 pb-2 opacity-60">
-                                <span class="text-[9px] font-bold text-blue-500 uppercase tracking-widest">${m.sender}</span>
-                                <span class="text-[8px] font-mono">${m.timeLabel || 'ARCHIVE'}</span>
+        window.triggerEyeScan = async () => {
+            const btn = document.getElementById('eye-btn');
+            btn.textContent = "SCANNING...";
+            await new Promise(r => setTimeout(r, 1500));
+            
+            // Post-eye mumbo jumbo
+            await runScipnetMumboJumbo("BIOMETRIC_HASH_VERIFY");
+            
+            currentUser = tempLoginId;
+            currentRole = PROFILES[tempLoginId].role;
+            updateUIState();
+            print(`HANDSHAKE COMPLETE: WELCOME ${currentUser}`, 'success');
+            closeAuth();
+            switchTab('comms');
+        };
+
+        window.switchTab = (tab) => {
+            currentTab = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            output.innerHTML = `<div class="opacity-30 mb-4 text-[0.6rem]">--- BUFFER ${tab.toUpperCase()} ---</div>`;
+            if (tab === 'comms') fetchMessages();
+            if (tab === 'ops') fetchOperations();
+        };
+
+        const updateUIState = () => {
+            prompt.textContent = `${currentUser ? currentUser.toUpperCase() : 'GUEST'}@CIU:~$`;
+            document.getElementById('user-status').textContent = currentUser ? `AUTH: ${currentRole}` : 'AUTH: UNAUTHORIZED';
+            document.querySelectorAll('#active-users span').forEach(s => {
+                s.classList.toggle('opacity-100', s.textContent === currentUser);
+            });
+        };
+
+        const fetchMessages = () => {
+            if (currentTab !== 'comms') return;
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'messages'), (snap) => {
+                if (currentTab !== 'comms') return;
+                output.innerHTML = '';
+                const msgs = [];
+                snap.forEach(d => msgs.push(d.data()));
+                msgs.sort((a,b) => a.timestamp - b.timestamp).slice(-50).forEach(m => {
+                    const time = new Date(m.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    print(`<span class="opacity-40">[${time}]</span> <span style="color: ${PROFILES[m.sender]?.color || '#00e5ff'}; font-weight:bold">${m.sender}</span>: ${m.text}`);
+                });
+            });
+        };
+
+        const fetchOperations = () => {
+            if (currentTab !== 'ops') return;
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'operations'), (snap) => {
+                if (currentTab !== 'ops') return;
+                output.innerHTML = '<span class="text-xl font-bold text-cyan-400">CIU_OPS_CONTROL</span><br><br>';
+                snap.forEach(d => {
+                    const data = d.data();
+                    const isAdmin = currentRole === 'Admin' || currentRole === 'Director';
+                    print(`
+                        <div class="op-card">
+                            <div class="flex justify-between border-b border-cyan-900 mb-2">
+                                <span class="font-bold">${data.title}</span>
+                                <span class="text-[0.6rem] opacity-30">${d.id.substring(0,6)}</span>
                             </div>
-                            <div class="text-[11px] text-gray-400 font-light">${m.body}</div>
-                        </div>`;
+                            <div class="text-[10px]">AGENT: ${data.assigned} | STATUS: ${data.status}</div>
+                            ${isAdmin ? `<div class="mt-2 flex gap-2">
+                                <button onclick="assignOp('${d.id}', 'North')" class="text-[9px] bg-cyan-900/40 border border-cyan-500/50 px-2">North</button>
+                                <button onclick="assignOp('${d.id}', 'Talli')" class="text-[9px] bg-cyan-900/40 border border-cyan-500/50 px-2">Talli</button>
+                                <button onclick="deleteOp('${d.id}')" class="text-[9px] bg-red-900 px-2">TERMINATE</button>
+                            </div>` : ''}
+                        </div>
+                    `);
                 });
-                buffer.scrollTop = buffer.scrollHeight;
             });
+        };
 
-            // Permissions
-            if (!isGuestMode) {
-                const permDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'permissions', currentOperative.id);
-                onSnapshot(permDocRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        userPermissions = docSnap.data();
-                        const btn = document.getElementById('transmit-trigger');
-                        if (userPermissions.canTransmit === false) {
-                            btn.disabled = true;
-                            btn.textContent = "TRANSMIT REVOKED";
-                            btn.classList.add('text-red-700');
-                        } else {
-                            btn.disabled = false;
-                            btn.textContent = "Transmit Message";
-                            btn.classList.remove('text-red-700');
-                        }
-                    } else {
-                        setDoc(permDocRef, { canTransmit: true });
-                    }
-                });
+        window.assignOp = async (id, user) => { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'operations', id), { assigned: user, status: 'ACTIVE' }); };
+        window.deleteOp = async (id) => { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'operations', id)); };
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const val = input.value; input.value = '';
+                if (terminalState === 'IDLE') print(`<span class="opacity-50">${prompt.textContent} ${val}</span>`);
+                processCommand(val);
             }
+        });
 
-            setInterval(() => {
-                document.getElementById('tel-mem').textContent = (25 + Math.floor(Math.random() * 25)) + '%';
-            }, 5000);
+        const init = async () => {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else { await signInAnonymously(auth); }
+            onAuthStateChanged(auth, (user) => { if (user) updateUIState(); });
+            startBoot();
         };
-
-        // --- ADMIN UI ---
-        const loadPermsUI = () => {
-            const list = document.getElementById('permission-list');
-            list.innerHTML = `<div class="text-[9px] text-gray-600">Querying RAISA...</div>`;
-            document.getElementById('permission-modal').classList.remove('hidden-section');
-
-            const permColRef = collection(db, 'artifacts', appId, 'public', 'data', 'permissions');
-            onSnapshot(permColRef, (snap) => {
-                const perms = {};
-                snap.forEach(d => perms[d.id] = d.data());
-                list.innerHTML = "";
-                Object.keys(operatives).forEach(opId => {
-                    if (opId === currentOperative.id) return; 
-                    const op = operatives[opId];
-                    const opPerms = perms[opId] || { canTransmit: true };
-                    const item = document.createElement('div');
-                    item.className = "flex justify-between items-center p-4 border border-gray-900 rounded bg-black/20";
-                    item.innerHTML = `
-                        <span class="text-[10px] font-bold text-gray-300 uppercase">${op.name}</span>
-                        <button id="toggle-${opId}" class="text-[8px] font-bold px-3 py-1 border ${opPerms.canTransmit ? 'border-green-900 text-green-700' : 'border-red-900 text-red-700'}">
-                            ${opPerms.canTransmit ? 'ALLOWED' : 'REVOKED'}
-                        </button>`;
-                    list.appendChild(item);
-                    
-                    document.getElementById(`toggle-${opId}`).onclick = () => {
-                        setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'permissions', opId), { canTransmit: !opPerms.canTransmit }, { merge: true });
-                    };
-                });
-            });
-        };
-
-        // --- EVENT LISTENERS (Reliable on GitHub) ---
-        document.getElementById('auth-btn').onclick = () => handleAuth('agent');
-        document.getElementById('guest-btn').onclick = () => handleAuth('guest');
-        document.getElementById('badge-scan-trigger').onclick = verifyIdentity;
-        document.getElementById('purge-node-btn').onclick = () => { document.body.classList.add('purge-mode'); setTimeout(() => location.reload(), 1500); };
-        document.getElementById('transmit-trigger').onclick = () => document.getElementById('transmit-modal').classList.remove('hidden-section');
-        document.getElementById('close-transmit-btn').onclick = () => document.getElementById('transmit-modal').classList.add('hidden-section');
-        document.getElementById('open-perms-btn').onclick = loadPermsUI;
-        document.getElementById('close-perms-btn').onclick = () => document.getElementById('permission-modal').classList.add('hidden-section');
-
-        document.getElementById('execute-trans-btn').onclick = async () => {
-            const body = document.getElementById('transmission-body').value.trim();
-            if (!body || !auth.currentUser) return;
-            const btn = document.getElementById('execute-trans-btn');
-            btn.disabled = true;
-            try {
-                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'messages'), {
-                    sender: currentOperative.name,
-                    body: body,
-                    timestamp: serverTimestamp(),
-                    timeLabel: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                });
-                document.getElementById('transmit-modal').classList.add('hidden-section');
-                document.getElementById('transmission-body').value = "";
-            } catch (e) { console.error(e); }
-            btn.disabled = false;
-        };
-
+        init();
     </script>
 </body>
 </html>
-
-```
